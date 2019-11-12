@@ -1,0 +1,21 @@
+DECLARE @bd VARCHAR(20) = 'BDNBS';
+DECLARE @tabla AS nvarchar(50)
+DECLARE @sql AS nvarchar(4000)
+DECLARE @Registros  AS INT;
+DECLARE Tabla CURSOR FOR SELECT TABLE_NAME  FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE' AND TABLE_NAME NOT IN ('logxierp')
+                         ORDER BY TABLE_NAME
+OPEN Tabla
+FETCH NEXT FROM Tabla INTO @tabla
+WHILE @@fetch_status = 0
+BEGIN
+   SET @Registros = (SELECT MAX(si.rows) FROM  sysobjects so join sysindexes AS si ON so.id = si.id WHERE so.xtype = 'U' AND so.name = @tabla)
+   IF (@Registros > 0)
+   BEGIN
+       SET @sql = 'SQLCMD -S localhost -d ' + @bd + ' -E -Q "SET NOCOUNT ON;SELECT * FROM ' + @tabla + '" -o "D:\csv\' + @bd + '\' + @tabla + '.csv" -f o:65001 -W -s"|"' 
+     --PRINT @sql
+     EXEC master..xp_cmdshell @sql;
+   END 
+   FETCH NEXT FROM Tabla INTO @tabla
+END
+CLOSE Tabla
+DEALLOCATE Tabla
