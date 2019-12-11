@@ -1,0 +1,22 @@
+-- PostgreSQL
+
+DO $$
+DECLARE registros INT = 0;
+DECLARE entidad VARCHAR(100) := NULL;
+DECLARE comando VARCHAR(1000) := NULL;
+DECLARE tupla  RECORD;
+DECLARE tabla  CURSOR FOR
+            SELECT table_schema,table_name 
+            FROM information_schema.tables
+            WHERE table_schema NOT IN ('pg_catalog','information_schema') and table_type = 'BASE TABLE' ORDER BY table_schema,table_name;
+BEGIN
+    FOR tupla IN tabla LOOP
+       entidad = tupla.table_schema ||'.'||tupla.table_name;
+       EXECUTE format('SELECT COUNT (*) FROM %s', entidad) INTO registros;
+       IF registros > 0 THEN
+	  comando = 'COPY ' || entidad ||' TO ''/tmp/csv_sanos/' || tupla.table_name || '.csv'' DELIMITER ''|'' HEADER CSV;';
+	  EXECUTE comando;
+       END IF;
+    END LOOP;
+END;
+$$
